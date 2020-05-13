@@ -1,0 +1,240 @@
+body
+{
+	background:#336699;
+	font-family:"Lucida Grande", Tahoma, Arial, Verdana, sans-serif;
+	font-size:small;
+	margin:8px 0 16px;
+}
+div#welcome {
+    background: darkblue;
+    color: white;
+    text-align: center;
+}
+div#messages {
+    background: powderblue;
+    width: 60%;
+    margin: auto;
+    margin-top: 20px;
+	border-radius: 8px;
+	padding-left: 6px;
+    height: 40vh;
+    overflow: auto;
+}
+.sebl-msg.error {
+    font-weight: bold;
+    color: red;
+}
+div#controls {
+    width: 60%;
+    margin: auto;
+	margin-top: 20px;
+	display:flex;
+}
+div#launch_btn {
+    width: 120px;
+    background: green;
+    text-align: center;
+    padding: 10px;
+    font-size: 25px;
+    border: 2px solid gray;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-right: 20px;
+}
+div#verify_btn {
+    width: 120px;
+    background: green;
+    text-align: center;
+    padding: 10px;
+    font-size: 25px;
+    border: 2px solid gray;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-right: 20px;
+}
+div#smc_btn {
+    width: 100px;
+    background: green;
+    text-align: center;
+    padding: 10px;
+    font-size: 25px;
+    border: 2px solid gray;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-right: 20px;
+}
+div#launch_btn.inactive {
+    pointer-events: none;
+    background: lightgray;
+    color: darkgray;
+}
+div#verify_btn.inactive {
+    pointer-events: none;
+    background: lightgray;
+    color: darkgray;
+}
+div#params_btn {
+    width: 160px;
+    background: green;
+    text-align: center;
+    padding: 10px;
+    font-size: 25px;
+    border: 2px solid gray;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-right: 20px;
+}
+div#footer {
+    text-align: right;
+    padding-right: 20px;
+}
+
+div#parameters {
+    width: 60%;
+    margin: auto;
+    margin-top: 20px;
+}
+.ui-accordion .ui-accordion-header {
+    font-size: 150%;
+}
+.sebl-label {
+    font-weight: bold;
+    /* text-align: right; */
+    /* padding-right: 20px; */
+    height: 26px;
+    float: left;
+    width: 50%;
+    padding-top: 4px;
+}
+.sebl-param {
+    height: 20px;
+    float: left;
+    height: 30px;
+    width: 50%;
+}
+.sebl-param input{
+    width: 80%;
+    margin-bottom: 9px;
+    padding: 2px;
+    border-radius: 4px;
+    border-style: solid;
+    border-width: 1px;
+    border-color: darkgray;
+    font-size: 14px;
+}
+.sebl-param input.changed{
+	background: #dcb546;
+}
+.ui-state-active, .ui-widget-content .ui-state-active, .ui-widget-header .ui-state-active, a.ui-button:active, .ui-button:active, .ui-button.ui-state-active:hover {
+    border: 1px solid #00008b;
+    background: #00008b;
+    font-weight: normal;
+    color: #fff;
+}
+input.sebl-checkbox {
+    height: 22px;
+    right: 38%;
+    position: relative;
+}
+.sebl-tip {
+    position: relative;
+    top: 2px;
+    left: 10px;
+    background: lightgoldenrodyellow;
+    border: 1px solid;
+    border-color: darkgoldenrod;
+    border-radius: 8px;
+    padding: 2px;
+    /* width: 120%; */
+}
+.sebl-phase {
+    float: left;
+    background: floralwhite;
+    border: 2px solid #303035;
+    border-radius: 8px;
+    padding: 4px;
+    margin-right: 20px;
+    width: 10%;
+}
+div#diagram_container {
+    margin-left: 20%;
+    margin-top: 20px;
+    height: 190px;
+}
+.sebl-phase-title {
+    background: darkblue;
+    color: white;
+    padding: 2px;
+    font-size: 16px;
+    font-weight: bold;
+}
+.sebl-step {
+    display: block;
+    font-size: 10px;
+    margin-bottom: 4px;
+    margin-top: 1px;
+    background: lightblue;
+}
+.sebl-step.sebl-not-started {
+    background: lightgray;
+    color: #666;
+}
+.sebl-phase.sebl-phase-not-started {
+    border-color: lightgray;
+}
+.sebl-phase.sebl-phase-not-started>.sebl-phase-title {
+    background: lightgray;
+}
+.sebl-status {
+    width: 20px;
+    height: 20px;
+    position: relative;
+    left: 80%;
+    padding-bottom: 2px;
+}
+.sebl-status.sebl-not-started {
+    background-image: url(../images/paused.png);
+    background-size: contain;
+    background-color: lightgray;
+    background-blend-mode: overlay;
+    background-repeat: no-repeat;
+    padding-bottom: 2px;
+}
+.sebl-status.sebl-completed {
+    background-image: url(../images/completed.png);
+    background-size: contain;
+    background-repeat: no-repeat;
+}
+.sebl-status.sebl-failed {
+    background-image: url(../images/failed.png);
+    background-size: cover;
+}
+.sebl-status.sebl-running {
+    background-image: url(../images/running.gif);
+    background-position-x: center;
+    background-position-x: center;
+    background-size: 50px;
+    background-repeat: no-repeat;
+    background-position-y: center;
+    background-color: #6865a9;
+    background-blend-mode: overlay;
+}
+.sebl-step.sebl-failed {
+    background: #e01818;
+}
+.sebl-phase.sebl-failed {
+    border-color: red;
+}
+.sebl-phase.sebl-failed .sebl-phase-title {
+    background: #e01818;
+}
+input.sebl-change-me {
+    background: indianred;
+}
+.sebl-step.sebl-staged {
+    background: #dcb546;
+}
+.sebl-status.sebl-staged {
+    background-image: url(../images/staged.png);
+    background-size: cover;
+}
