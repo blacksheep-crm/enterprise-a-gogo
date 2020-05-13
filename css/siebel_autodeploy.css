@@ -53,15 +53,16 @@ div#verify_btn {
     margin-right: 20px;
 }
 div#smc_btn {
-    width: 100px;
-    background: green;
+    /* width: 100px; */
+    background: rgb(94,158,214);
     text-align: center;
     padding: 10px;
     font-size: 25px;
     border: 2px solid gray;
     border-radius: 8px;
     cursor: pointer;
-    margin-right: 20px;
+    /* margin-right: 20px; */
+    margin-left: auto;
 }
 div#launch_btn.inactive {
     pointer-events: none;
