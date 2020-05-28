@@ -64,6 +64,30 @@ div#smc_btn {
     /* margin-right: 20px; */
     margin-left: auto;
 }
+div#save_btn {
+    /* width: 100px; */
+    background: rgb(94,158,214);
+    text-align: center;
+    padding: 10px;
+    font-size: 25px;
+    border: 2px solid gray;
+    border-radius: 8px;
+    cursor: pointer;
+    /* margin-right: 20px; */
+    margin-left: auto;
+}
+div#import_btn {
+    /* width: 100px; */
+    background: rgb(94,158,214);
+    text-align: center;
+    padding: 10px;
+    font-size: 25px;
+    border: 2px solid gray;
+    border-radius: 8px;
+    cursor: pointer;
+    /* margin-right: 20px; */
+    margin-left: auto;
+}
 div#launch_btn.inactive {
     pointer-events: none;
     background: lightgray;
@@ -238,4 +262,12 @@ input.sebl-change-me {
 .sebl-status.sebl-staged {
     background-image: url(../images/staged.png);
     background-size: cover;
+}
+textarea#save_params {
+    width: 98%;
+    height: 200px;
+}
+textarea#inp_params {
+    width: 98%;
+    height: 200px;
 }
