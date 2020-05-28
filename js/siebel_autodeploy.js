@@ -651,6 +651,64 @@ sebl_bindevents = function () {
     $("#verify_btn").on("click", function (e) {
         sebl_checkenv();
     });
+    $("#save_btn").on("click", function (e) {
+        sebl_saveparams();
+    });
+    $("#import_btn").on("click", function (e) {
+        sebl_importparams();
+    });
+}
+sebl_saveparams = function () {
+    var fields = sebl_conf.fields;
+    var out = {};
+    for (f in fields) {
+        out[f] = fields[f].value;
+    }
+
+    var dlg = $("<div><textarea id='save_params'></textarea></div>");
+    dlg.find("#save_params").val(JSON.stringify(out));
+    dlg.dialog({
+        title: "Parameters saved to clipboard",
+        buttons: [
+            {
+                text: "Close",
+                click: function(e){
+                    $(this).dialog("destroy");
+                }
+            }
+        ]
+    });
+    $("#save_params")[0].select();
+    document.execCommand("copy");
+}
+sebl_importparams = function () {
+    var fields = sebl_conf.fields;
+    var inp;
+
+    var dlg = $("<div><textarea id='inp_params'></textarea></div>");
+    dlg.dialog({
+        title: "Import Parameters in JSON Format",
+        buttons: [
+            {
+                text: "Import",
+                click: function(e){
+                    try{
+                        inp = JSON.parse($("#inp_params").val());
+                    }
+                    catch(e){
+                        alert(e.toString());
+                    }
+                    //console.log(inp);
+                    $("#parameters").remove();
+                    for (f in fields){
+                        fields[f].value = inp[f];
+                    }
+                    sebl_params_gui();
+                    $(this).dialog("destroy");
+                }
+            }
+        ]
+    });
 }
 sebl_addmessage = function (m, c) {
     var md = $("<div class='sebl-msg'>");
@@ -2353,7 +2411,7 @@ sebl_getmigconn = function (con) {
 
     xhr.send(data);
 }
-sebl_refresh = function(){
+sebl_refresh = function () {
     //POST https://siebel20.company.com:4430/siebel/v1.0/cloudgateway/introspections
     //data = {};
 }
