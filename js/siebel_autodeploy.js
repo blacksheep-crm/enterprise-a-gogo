@@ -766,7 +766,7 @@ sebl_setmigconn = function () {
         "restEndpoint": "https://" + sebl_conf.fields.ai_host.value + ":" + sebl_conf.fields.ai_port.value + "/siebel/v1.0",
         "isFavourite": "false",
     }
-    if (is203 && sebl_conf.fields.version.value == "DR") {
+    if (is203 && sebl_conf.fields.env_type.value == "DR") {
         data.schemaUser = "";
         data.tableSpaceData = "";
         data.tableSpaceIndex = "";
