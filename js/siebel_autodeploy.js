@@ -774,7 +774,7 @@ sebl_setmigconn = function () {
         data.tableSpacePage32K = "";
         data.isUnicodeDatabase = true;
     }
-    if (is203 && sebl_conf.fields.version.value == "RR") {
+    if (is203 && sebl_conf.fields.env_type.value == "RR") {
         data.schemaUser = sebl_conf.fields.db_tblo.value;
         data.tableSpaceData = sebl_conf.fields.db_tblspc_data.value;
         data.tableSpaceIndex = sebl_conf.fields.db_tblspc_idx.value;
