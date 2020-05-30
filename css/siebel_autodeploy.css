@@ -62,7 +62,7 @@ div#smc_btn {
     border-radius: 8px;
     cursor: pointer;
     /* margin-right: 20px; */
-    margin-left: auto;
+    margin-left: 20px;
 }
 div#save_btn {
     /* width: 100px; */
@@ -86,7 +86,7 @@ div#import_btn {
     border-radius: 8px;
     cursor: pointer;
     /* margin-right: 20px; */
-    margin-left: auto;
+    margin-left: 20px;
 }
 div#launch_btn.inactive {
     pointer-events: none;
