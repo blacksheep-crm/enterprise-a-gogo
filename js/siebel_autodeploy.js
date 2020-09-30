@@ -2082,12 +2082,12 @@ sebl_setsecprof = function () {
         var data = JSON.stringify(
             {
                 "Profile": {
-                    "ProfileName": "secprof"
+                    "ProfileName": "Gateway"
                 },
                 "SecurityConfigParams": {
                     "DataSources": [
                         {
-                            "Name": "secprof",
+                            "Name": "db",
                             "Type": "DB",
                             "Host": sebl_conf.fields.db_host.value,
                             "Port": sebl_conf.fields.db_port.value,
@@ -2095,12 +2095,13 @@ sebl_setsecprof = function () {
                             "Endpoint": sebl_conf.fields.sec_sid.value,
                             "TableOwner": sebl_conf.fields.db_tblo.value,
                             "CRC": "",
-                            "HashUserPwd": "false"
+                            "HashUserPwd": "false",
+                            "HashAlgorithm": "SHA1"
                         }
                     ],
                     "SecAdptMode": "DB",
                     "SecAdptName": "DBSecAdpt",
-                    "DBSecurityAdapterDataSource": "secprof",
+                    "DBSecurityAdapterDataSource": "db",
                     "DBSecurityAdapterPropagateChange": "false",
                     "NSAdminRole": ["Siebel Administrator"],
                     "TestUserName": sebl_conf.fields.db_user.value,
