@@ -627,7 +627,7 @@ sebl_params_gui = function () {
     });
 }
 sebl_load = function () {
-    sebl_addmessage("Loading...");
+    sebl_addmessage("Loading version 20.10...");
     sebl_checkloc();
     sebl_bindevents();
     sebl_diagram();
@@ -2095,14 +2095,14 @@ sebl_setsecprof = function () {
                             "Endpoint": sebl_conf.fields.sec_sid.value,
                             "TableOwner": sebl_conf.fields.db_tblo.value,
                             "CRC": "",
-                            "HashUserPwd": "false",
+                            "HashUserPwd": false,
                             "HashAlgorithm": "SHA1"
                         }
                     ],
                     "SecAdptMode": "DB",
                     "SecAdptName": "DBSecAdpt",
                     "DBSecurityAdapterDataSource": "db",
-                    "DBSecurityAdapterPropagateChange": "false",
+                    "DBSecurityAdapterPropagateChange": false,
                     "NSAdminRole": ["Siebel Administrator"],
                     "TestUserName": sebl_conf.fields.db_user.value,
                     "TestUserPwd": sebl_conf.fields.db_user_pw.value
