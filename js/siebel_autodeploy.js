@@ -10,12 +10,10 @@ for(i=should,i=understand,i=read)
  }
  */
 
-//TODO: Export/import profiles as JSON
 //TODO: Hire a web designer, please!
 
 //Set passwords
 //for testing only, DO NOT STORE PRODUCTION/CRITICAL PASSWORDS HERE!!!
-
 sebl_setpw = function () {
     //DB Table Owner
     sebl_conf.fields.db_tblo_pw.value = "Welcome1";
@@ -84,11 +82,11 @@ var sebl_conf = {
         },
         smc_initial_user: {
             value: "SADMIN", label: "AI Primordial User Name", group: "General", seq: 3,
-            tip: "The Username provided during AI 17.0 Installation, step 'Application Interface Authentication'.<br><img src='images/smc_initial_user_1.png'>"
+            tip: "The Username provided during AI Installation, step 'Application Interface Authentication'."
         },
         smc_initial_pw: {
             value: "CHANGE_ME", label: "AI Primordial User Password", group: "General", seq: 4, type: "password",
-            tip: "The Password provided during AI 17.0 Installation, step 'Application Interface Authentication'.<br><img src='images/smc_initial_user_1.png'>"
+            tip: "The Password provided during AI Installation, step 'Application Interface Authentication'."
         },
         db_type: {
             value: "Oracle", label: "Database Type", group: "Database", seq: 1,
@@ -135,8 +133,12 @@ var sebl_conf = {
             tip: "The password of the Siebel administrative user."
         },
         zk_port: {
-            value: "2330", label: "ZooKeeper Port", group: "Gateway", seq: 3,
+            value: "2330", label: "ZooKeeper Port", group: "Gateway", seq: 4,
             tip: "The ZooKeeper port for client connections. This is NOT the Gateway TLS port. This port will be used to create the ZooKeeper registry in Bootstrap step 3."
+        },
+        gw_tls: {
+            value: "2320", label: "Gateway TLS Port", group: "Gateway", seq: 3,
+            tip: "The port used by the gtwyns (Gateway Registry) service (fka Gateway Name Server). This is NOT the ZooKeeper port."
         },
         zk_user: {
             value: "SADMIN", label: "ZooKeeper User Name", group: "General", seq: 9,
@@ -263,6 +265,8 @@ var sebl_eai_retry = 0;
 var sebl_eai_max_retry = 20;
 var sebl_eai_restart = false;
 var sebl_discovery_mode = false;
+var sebl_curl = "";
+var sebl_dryrun = false;
 
 sebl_validate = function () {
     sebl_addmessage("Validating Parameters...");
@@ -400,7 +404,6 @@ sebl_diagram = function () {
             $("#phase_container_" + phase).addClass("sebl-phase-completed");
         }
     }
-
 }
 
 sebl_params_gui = function () {
@@ -598,22 +601,27 @@ sebl_params_gui = function () {
             var value = $(this).val();
             sebl_conf.fields[field].value = value;
             sebl_diagram();
-			if (field == "version"){
-				var v = sebl_getversion(value);
-				//20.10 or higher: no DB info required for Migration Profile
-				if (v.y >= 20 && v.m >= 10){
-					pc.find("#mig_inp_2").hide();
-					pc.find("#mig_lbl_2").hide();
-				}
-                if (v.y >= 21){
-					pc.find("#mig_inp_2").hide();
-					pc.find("#mig_lbl_2").hide();
-				}
-				else{
-					pc.find("#mig_inp_2").show();
-					pc.find("#mig_lbl_2").show();
-				}
-			}
+            if (field == "version") {
+                var v = sebl_getversion(value);
+                //20.10 or higher: no DB info required for Migration Profile
+                if ((v.y >= 20 && v.m >= 10) || (v.y >= 21)) {
+                    pc.find("#mig_inp_2").hide();
+                    pc.find("#mig_lbl_2").hide();
+                }
+                else {
+                    pc.find("#mig_inp_2").show();
+                    pc.find("#mig_lbl_2").show();
+                }
+                //21.2 or higher: TLS Port required
+                if ((v.y >= 21 && v.m >= 2) || (v.y >= 22)) {
+                    pc.find("#gw_inp_3").show();
+                    pc.find("#gw_lbl_3").show();
+                }
+                else {
+                    pc.find("#gw_inp_3").hide();
+                    pc.find("#gw_lbl_3").hide();
+                }
+            }
         }
         if ($(this).attr("type") == "checkbox") {
             if (this.checked) {
@@ -643,7 +651,7 @@ sebl_params_gui = function () {
     });
 }
 sebl_load = function () {
-    sebl_addmessage("Loading version 21.1");
+    sebl_addmessage("Loading version 21.2");
     sebl_checkloc();
     sebl_bindevents();
     sebl_diagram();
@@ -651,7 +659,32 @@ sebl_load = function () {
 sebl_bindevents = function () {
     $("#launch_btn").on("click", function (e) {
         $(this).addClass("inactive");
+        sebl_dryrun = false;
         sebl_run();
+    });
+    $("#dryrun_btn").on("click", function (e) {
+        sebl_curl = "";
+        sebl_dryrun = true;
+        if (sebl_validate()){
+            sebl_run();
+            var dlg = $("<div><textarea id='dryrun' style='overflow:auto;width:770px;height:475px;'></textarea></div>");
+            dlg.find("#dryrun").val(sebl_curl);
+            dlg.dialog({
+                title: "curl commands saved to clipboard",
+                width: 800,
+                height: 600,
+                buttons: [
+                    {
+                        text: "Close",
+                        click: function (e) {
+                            $(this).dialog("destroy");
+                        }
+                    }
+                ]
+            });
+            $("#dryrun")[0].select();
+            document.execCommand("copy");
+        }
     });
     $("#params_btn").on("click", function (e) {
         if ($("#parameters").length == 0) {
@@ -761,14 +794,14 @@ sebl_addmessage = function (m, c) {
 
     console.log(m);
 }
-sebl_getversion = function(v){
-	var y = parseInt(v.split(".")[0]);
+sebl_getversion = function (v) {
+    var y = parseInt(v.split(".")[0]);
     var m = parseInt(v.split(".")[1]);
-	var retval = {
-		y:y,
-		m:m
-	}
-	return retval;
+    var retval = {
+        y: y,
+        m: m
+    }
+    return retval;
 }
 sebl_bounce = function () {
     //POST https://siebel20.company.com:4430/siebel/v1.0/cloudgateway/enterprises/ENT/servers/server01
@@ -776,16 +809,27 @@ sebl_bounce = function () {
     //wait
     //{"Action":"Startup"}
 }
+sebl_getcurlprefix = function (prim) {
+    var user, pw, ep;
+    if (prim) {
+        user = sebl_conf.fields.smc_initial_user.value;
+        pw = sebl_conf.fields.smc_initial_pw.value;
+    }
+    else {
+        user = sebl_conf.fields.db_user.value;
+        pw = sebl_conf.fields.db_user_pw.value;
+    }
+    var pf = "curl -u " + user + ":" + pw + " -i -X POST -H \"Content-Type:application/json\" \"" + "https://" + sebl_conf.fields.ai_host.value + ":" + sebl_conf.fields.ai_port.value;
+    return pf;
+}
 sebl_setmigconn = function () {
     sebl_setprocstep(11);
-    var v = sebl_conf.fields.version.value;
-    var y = parseInt(v.split(".")[0]);
-    var m = parseInt(v.split(".")[1]);
+    var v = sebl_getversion(sebl_conf.fields.version.value);
     var is203 = false;
-    if (y >= 20 && m >= 3) {
+    if (v.y >= 20 && v.m >= 3) {
         is203 = true;
     }
-    if (y >= 21) {
+    if (v.y >= 21) {
         is203 = true;
     }
     sebl_addmessage("Siebel Migration App (" + sebl_conf.fields.mig_name.value + "): Connection " + sebl_conf.fields.mig_conn_name.value + " Creation");
@@ -836,12 +880,23 @@ sebl_setmigconn = function () {
     xhr.open("POST", "https://" + sebl_conf.fields.ai_host.value + ":" + sebl_conf.fields.ai_port.value + endpoint);
     xhr.setRequestHeader("Authorization", auth);
     xhr.setRequestHeader("Content-Type", "application/json");
-    xhr.send(data);
+    if (sebl_dryrun) {
+        sebl_curl += "\n" + "REM *****Set Migration Connection*****";
+        sebl_curl += "\n" + sebl_getcurlprefix() + endpoint + "\" --data-raw \"" + data.replace(/"/g, '\\"') + "\" -k" + "\n" + "timeout 10";
+        sebl_setprocstate(1);
+        sebl_optimize();
+    }
+    else {
+        xhr.send(data);
+    }
 }
 sebl_run = function () {
     //sebl_checkenv();
     if (sebl_validate()) {
         sebl_addmessage("Starting deployment...");
+        if (sebl_dryrun) {
+            sebl_addmessage("Dryrun started...");
+        }
         var started = false;
         //order of execution
         //Bootstrap
@@ -955,7 +1010,16 @@ sebl_deploymig = function () {
         xhr.open(verb, "https://" + sebl_conf.fields.ai_host.value + ":" + sebl_conf.fields.ai_port.value + endpoint);
         xhr.setRequestHeader("Authorization", auth);
         xhr.setRequestHeader("Content-Type", "application/json");
-        xhr.send(data);
+        if (sebl_dryrun) {
+            sebl_curl += "\n" + "REM *****Deploy Migration App*****";
+            sebl_curl += "\n" + sebl_getcurlprefix() + endpoint + "\" --data-raw \"" + data.replace(/"/g, '\\"') + "\" -k" + "\n" + "timeout 60";
+            sebl_setprocstate(2);
+            sebl_setmigconn();
+            //sebl_optimize();
+        }
+        else {
+            xhr.send(data);
+        }
     }
     else {
         sebl_addmessage("Siebel Migration App (" + sebl_conf.fields.ses_name.value + "): " + "Deployment/Staging" + " not executed. Subsequent steps might fail!", "error");
@@ -968,14 +1032,12 @@ sebl_getlog = function () {
 sebl_setmigprof = function () {
     sebl_setprocstep(9);
     sebl_addmessage("Siebel Migration App (" + sebl_conf.fields.mig_name.value + "): Profile Creation");
-    var v = sebl_conf.fields.version.value;
-    var y = parseInt(v.split(".")[0]);
-    var m = parseInt(v.split(".")[1]);
+    var v = sebl_getversion(sebl_conf.fields.version.value);
     var is2010 = false;
-    if (y >= 20 && m >= 10) {
+    if (v.y >= 20 && v.m >= 10) {
         is2010 = true;
     }
-    if (y >= 21) {
+    if (v.y >= 21) {
         is2010 = true;
     }
     var data = JSON.stringify(
@@ -1045,7 +1107,15 @@ sebl_setmigprof = function () {
     xhr.open("POST", "https://" + sebl_conf.fields.ai_host.value + ":" + sebl_conf.fields.ai_port.value + endpoint);
     xhr.setRequestHeader("Authorization", auth);
     xhr.setRequestHeader("Content-Type", "application/json");
-    xhr.send(data);
+    if (sebl_dryrun) {
+        sebl_curl += "\n" + "REM *****Set Migration Profile*****";
+        sebl_curl += "\n" + sebl_getcurlprefix() + endpoint + "\" --data-raw \"" + data.replace(/"/g, '\\"') + "\" -k" + "\n" + "timeout 10";
+        sebl_setprocstate(1);
+        sebl_deploymig();
+    }
+    else {
+        xhr.send(data);
+    }
 }
 sebl_checkentdeployed = function () {
     var data = "";
@@ -1090,7 +1160,9 @@ sebl_checkentdeployed = function () {
 
     xhr.open("GET", "https://" + sebl_conf.fields.ai_host.value + ":" + sebl_conf.fields.ai_port.value + endpoint + sebl_conf.fields.ent_name.value);
     xhr.setRequestHeader("Authorization", auth);
-    xhr.send(data);
+    if (!sebl_dryrun) {
+        xhr.send(data);
+    }
 }
 sebl_checksesdeployed = function () {
     var data = "";
@@ -1138,7 +1210,9 @@ sebl_checksesdeployed = function () {
 
     xhr.open("GET", "https://" + sebl_conf.fields.ai_host.value + ":" + sebl_conf.fields.ai_port.value + endpoint + sebl_conf.fields.ses_name.value);
     xhr.setRequestHeader("Authorization", auth);
-    xhr.send(data);
+    if (!sebl_dryrun) {
+        xhr.send(data);
+    }
 }
 sebl_checkaideployed = function () {
     var data = "";
@@ -1184,7 +1258,9 @@ sebl_checkaideployed = function () {
 
     xhr.open("GET", "https://" + sebl_conf.fields.ai_host.value + ":" + sebl_conf.fields.ai_port.value + endpoint + "/" + sebl_conf.fields.ai_name.value);
     xhr.setRequestHeader("Authorization", auth);
-    xhr.send(data);
+    if (!sebl_dryrun) {
+        xhr.send(data);
+    }
 }
 sebl_checkmigdeployed = function () {
     var data = "";
@@ -1228,7 +1304,9 @@ sebl_checkmigdeployed = function () {
 
     xhr.open("GET", "https://" + sebl_conf.fields.ai_host.value + ":" + sebl_conf.fields.ai_port.value + endpoint + "/" + sebl_conf.fields.mig_name.value);
     xhr.setRequestHeader("Authorization", auth);
-    xhr.send(data);
+    if (!sebl_dryrun) {
+        xhr.send(data);
+    }
 }
 sebl_checkent = function () {
     var xhr = new XMLHttpRequest();
@@ -1262,7 +1340,9 @@ sebl_checkent = function () {
     xhr.open("GET", "https://" + sebl_conf.fields.ai_host.value + ":" + sebl_conf.fields.ai_port.value + endpoint + "/" + sebl_conf.fields.ent_name.value);
     xhr.setRequestHeader("Authorization", auth);
 
-    xhr.send();
+    if (!sebl_dryrun) {
+        xhr.send();
+    }
 }
 
 sebl_checkmig = function () {
@@ -1295,7 +1375,9 @@ sebl_checkmig = function () {
     xhr.open("GET", "https://" + sebl_conf.fields.ai_host.value + ":" + sebl_conf.fields.ai_port.value + endpoint + "/" + sebl_conf.fields.mig_name.value);
     xhr.setRequestHeader("Authorization", auth);
 
-    xhr.send();
+    if (!sebl_dryrun) {
+        xhr.send();
+    }
 }
 
 sebl_checkses = function () {
@@ -1336,7 +1418,9 @@ sebl_checkses = function () {
     xhr.open("GET", "https://" + sebl_conf.fields.ai_host.value + ":" + sebl_conf.fields.ai_port.value + endpoint + "/" + sebl_conf.fields.ses_name.value);
     xhr.setRequestHeader("Authorization", auth);
 
-    xhr.send();
+    if (!sebl_dryrun) {
+        xhr.send();
+    }
 }
 
 sebl_checkai = function () {
@@ -1370,7 +1454,9 @@ sebl_checkai = function () {
 
     xhr.open("GET", "https://" + sebl_conf.fields.ai_host.value + ":" + sebl_conf.fields.ai_port.value + endpoint + "/" + sebl_conf.fields.ai_name.value);
     xhr.setRequestHeader("Authorization", auth);
-    xhr.send();
+    if (!sebl_dryrun) {
+        xhr.send();
+    }
 }
 
 sebl_deployai = function () {
@@ -1429,7 +1515,15 @@ sebl_deployai = function () {
         xhr.open(verb, "https://" + sebl_conf.fields.ai_host.value + ":" + sebl_conf.fields.ai_port.value + endpoint);
         xhr.setRequestHeader("Authorization", auth);
         xhr.setRequestHeader("Content-Type", "application/json");
-        xhr.send(data);
+        if (sebl_dryrun) {
+            sebl_curl += "\n" + "REM *****Deploy AI*****";
+            sebl_curl += "\n" + sebl_getcurlprefix() + endpoint + "\" --data-raw \"" + data.replace(/"/g, '\\"') + "\" -k" + "\n" + "timeout 60";
+            sebl_setprocstate(2);
+            sebl_setmigprof();
+        }
+        else {
+            xhr.send(data);
+        }
     }
     else {
         sebl_addmessage("Siebel AI (" + sebl_conf.fields.ses_name.value + "): " + "Deployment/Staging" + " not executed. Subsequent steps might fail!", "error");
@@ -1456,8 +1550,8 @@ sebl_setaiprof = function () {
                         "SessionTimeout": 9000,
                         "SessionTimeoutWarning": 60,
                         "GuestSessionTimeout": 300,
-                        "SessionTimeoutWLMethod": "HeartBeat",
-                        "SessionTimeoutWLCommand": "UpdatePrefMsg",
+                        "SessionTimeoutWLMethod": "",
+                        "SessionTimeoutWLCommand": "",
                         "SessionTokenMaxAge": 2880,
                         "SessionTokenTimeout": 9000,
                         "MaxTabs": 1,
@@ -1488,8 +1582,8 @@ sebl_setaiprof = function () {
                     "SessionTimeout": 9000,
                     "SessionTimeoutWarning": 60,
                     "GuestSessionTimeout": 300,
-                    "SessionTimeoutWLMethod": "HeartBeat",
-                    "SessionTimeoutWLCommand": "UpdatePrefMsg",
+                    "SessionTimeoutWLMethod": "UpdatePrefMsg,GetAlarmInstances",
+                    "SessionTimeoutWLCommand": "HeartBeat",
                     "SessionTokenMaxAge": 2880,
                     "SessionTokenTimeout": 9000,
                     "MaxTabs": 1,
@@ -1557,7 +1651,15 @@ sebl_setaiprof = function () {
     xhr.open("POST", "https://" + sebl_conf.fields.ai_host.value + ":" + sebl_conf.fields.ai_port.value + endpoint);
     xhr.setRequestHeader("Authorization", auth);
     xhr.setRequestHeader("Content-Type", "application/json");
-    xhr.send(data);
+    if (sebl_dryrun) {
+        sebl_curl += "\n" + "REM *****Create AI Profile*****";
+        sebl_curl += "\n" + sebl_getcurlprefix() + endpoint + "\" --data-raw \"" + data.replace(/"/g, '\\"') + "\" -k" + "\n" + "timeout 10";
+        sebl_setprocstate(1);
+        sebl_deployai();
+    }
+    else {
+        xhr.send(data);
+    }
 }
 sebl_optimize = function () {
     var last_one = false;
@@ -1597,7 +1699,17 @@ sebl_setmanualstart = function (comp, last_one) {
     xhr.open("POST", "https://" + sebl_conf.fields.ai_host.value + ":" + sebl_conf.fields.ai_port.value + endpoint + comp);
     xhr.setRequestHeader("Authorization", auth);
     xhr.setRequestHeader("Content-Type", "application/json");
-    xhr.send(data);
+    if (sebl_dryrun) {
+        sebl_curl += "\n" + "REM *****Set " + comp + " to manual start*****";
+        sebl_curl += "\n" + sebl_getcurlprefix() + endpoint + comp + "\" --data-raw \"" + data.replace(/"/g, '\\"') + "\" -k" + "\n" + "timeout 2";
+        if (lo) {
+            sebl_setprocstate(1);
+            sebl_setsafemode();
+        }
+    }
+    else {
+        xhr.send(data);
+    }
 }
 sebl_managecomp = function (comp, action) {
     sebl_addmessage(action + " of comp " + comp);
@@ -1634,7 +1746,9 @@ sebl_managecomp = function (comp, action) {
     xhr.open("POST", "https://" + sebl_conf.fields.ai_host.value + ":" + sebl_conf.fields.ai_port.value + endpoint + comp);
     xhr.setRequestHeader("Authorization", auth);
     xhr.setRequestHeader("Content-Type", "application/json");
-    xhr.send(data);
+    if (!sebl_dryrun) {
+        xhr.send(data);
+    }
 }
 sebl_deployses = function () {
     var dt = sebl_conf.ses_deploy_type;
@@ -1693,7 +1807,15 @@ sebl_deployses = function () {
         xhr.open(verb, "https://" + sebl_conf.fields.ai_host.value + ":" + sebl_conf.fields.ai_port.value + endpoint);
         xhr.setRequestHeader("Authorization", auth);
         xhr.setRequestHeader("Content-Type", "application/json");
-        xhr.send(data);
+        if (sebl_dryrun) {
+            sebl_curl += "\n" + "REM *****Deploy Siebel Server*****";
+            sebl_curl += "\n" + sebl_getcurlprefix() + endpoint + "\" --data-raw \"" + data.replace(/"/g, '\\"') + "\" -k" + "\n" + "timeout 600";
+            sebl_setprocstate(2);
+            sebl_setaiprof();
+        }
+        else {
+            xhr.send(data);
+        }
     }
     else {
         sebl_addmessage("Siebel Server (" + sebl_conf.fields.ses_name.value + "): " + "Deployment/Staging" + " not executed. Subsequent steps might fail!", "error");
@@ -1745,7 +1867,15 @@ sebl_setsesprof = function () {
     xhr.setRequestHeader("Authorization", auth);
     xhr.setRequestHeader("Content-Type", "application/json");
 
-    xhr.send(data);
+    if (sebl_dryrun) {
+        sebl_curl += "\n" + "REM *****Create Siebel Server Profile*****";
+        sebl_curl += "\n" + sebl_getcurlprefix() + endpoint + "\" --data-raw \"" + data.replace(/"/g, '\\"') + "\" -k" + "\n" + "timeout 10";
+        sebl_setprocstate(1);
+        sebl_deployses();
+    }
+    else {
+        xhr.send(data);
+    }
 }
 sebl_deployent = function () {
     //debugger;
@@ -1806,7 +1936,15 @@ sebl_deployent = function () {
         xhr.open(verb, "https://" + sebl_conf.fields.ai_host.value + ":" + sebl_conf.fields.ai_port.value + endpoint);
         xhr.setRequestHeader("Authorization", auth);
         xhr.setRequestHeader("Content-Type", "application/json");
-        xhr.send(data);
+        if (sebl_dryrun) {
+            sebl_curl += "\n" + "REM *****Deploy Enterprise*****";
+            sebl_curl += "\n" + sebl_getcurlprefix() + endpoint + "\" --data-raw \"" + data.replace(/"/g, '\\"') + "\" -k" + "\n" + "timeout 60";
+            sebl_setprocstate(2);
+            sebl_setsesprof();
+        }
+        else {
+            xhr.send(data);
+        }
     }
     else {
         sebl_addmessage("Enterprise (" + sebl_conf.fields.ent_name.value + "): " + "Deployment/Staging" + " not executed. Subsequent steps might fail!", "error");
@@ -1859,7 +1997,15 @@ sebl_setentprof = function () {
     xhr.setRequestHeader("Authorization", auth);
     xhr.setRequestHeader("Content-Type", "application/json");
 
-    xhr.send(data);
+    if (sebl_dryrun) {
+        sebl_curl += "\n" + "REM *****Create Enterprise Profile*****";
+        sebl_curl += "\n" + sebl_getcurlprefix() + endpoint + "\" --data-raw \"" + data.replace(/"/g, '\\"') + "\" -k" + "\n" + "timeout 10";
+        sebl_setprocstate(1);
+        sebl_deployent();
+    }
+    else {
+        xhr.send(data);
+    }
 }
 sebl_setprocstate = function (status) {
     sebl_proc.steps[sebl_proc.current_step].status = status;
@@ -1910,8 +2056,9 @@ sebl_checkgw = function () {
     xhr.open("GET", "https://" + sebl_conf.fields.ai_host.value + ":" + sebl_conf.fields.ai_port.value + endpoint);
     xhr.setRequestHeader("Authorization", auth);
     xhr.setRequestHeader("Content-Type", "application/json");
-
-    xhr.send(data);
+    if (!sebl_dryrun) {
+        xhr.send(data);
+    }
 }
 sebl_creategw = function () {
     if (sebl_discovery.status === 2) {
@@ -1951,7 +2098,15 @@ sebl_creategw = function () {
         xhr.open("POST", "https://" + sebl_conf.fields.ai_host.value + ":" + sebl_conf.fields.ai_port.value + endpoint);
         xhr.setRequestHeader("Authorization", auth);
         xhr.setRequestHeader("Content-Type", "application/json");
-        xhr.send(data);
+        if (sebl_dryrun) {
+            sebl_curl += "\n" + "REM *****Bootstrap #3: Create Gateway Registry*****";
+            sebl_curl += "\n" + sebl_getcurlprefix() + endpoint + "\" --data-raw \"" + data.replace(/"/g, '\\"') + "\" -k" + "\n" + "timeout 60";
+            sebl_setprocstate(1);
+            sebl_setentprof();
+        }
+        else {
+            xhr.send(data);
+        }
     }
     else {
         sebl_addmessage("Bootstrap step 3: Gateway Registry Creation not executed");
@@ -2014,7 +2169,17 @@ sebl_setsafemode = function () {
     xhr.open("POST", "https://" + sebl_conf.fields.ai_host.value + ":" + sebl_conf.fields.ai_port.value + endpoint);
     xhr.setRequestHeader("Authorization", auth);
     xhr.setRequestHeader("Content-Type", "application/json");
-    xhr.send(data);
+    if (sebl_dryrun) {
+        sebl_curl += "\n" + "REM *****Set Safe Mode Credentials*****";
+        sebl_curl += "\n" + sebl_getcurlprefix() + endpoint + "\" --data-raw \"" + data.replace(/"/g, '\\"') + "\" -k" + "\n" + "timeout 10";
+        sebl_setprocstate(1);
+        sebl_addmessage("Dryrun complete");
+        sebl_addmessage("*************************************************");
+        //sebl_addmessage(sebl_curl);
+    }
+    else {
+        xhr.send(data);
+    }
 }
 sebl_delgw = function () {
     var data = "";
@@ -2031,14 +2196,29 @@ sebl_delgw = function () {
     xhr.open("DELETE", "https://siebel20.company.com:4430/siebel/v1.0/cginfo");
     xhr.setRequestHeader("Authorization", "Basic U0FETUlOOlNBRE1JTg==");
     xhr.setRequestHeader("Content-Type", "application/json");
-
-    xhr.send(data);
+    if (!sebl_dryrun) {
+        xhr.send(data);
+    }
 }
 sebl_setgw = function () {
     if (sebl_discovery.status === 0) {
         sebl_setprocstep(0);
         sebl_addmessage("Bootstrap step 1: CGW Host URI");
+        var v = sebl_getversion(sebl_conf.fields.version.value);
+        var is212 = false;
+        if (v.y >= 21 && v.m >= 2) {
+            is212 = true;
+        }
+        if (v.y >= 22) {
+            is212 = true;
+        }
         var data = JSON.stringify({ "CGHostURI": sebl_conf.fields.gw_host.value + ":" + sebl_conf.fields.gw_port.value });
+        if (is212) {
+            data = JSON.stringify({
+                "CGHostURI": sebl_conf.fields.gw_host.value + ":" + sebl_conf.fields.gw_port.value,
+                "CGTlsPort": sebl_conf.fields.gw_tls.value
+            });
+        }
         var xhr = new XMLHttpRequest();
         var auth = "Basic " + btoa(sebl_conf.fields.smc_initial_user.value + ":" + sebl_conf.fields.smc_initial_pw.value);
         var endpoint = "/siebel/v1.0/cginfo";
@@ -2061,7 +2241,16 @@ sebl_setgw = function () {
         xhr.open("POST", "https://" + sebl_conf.fields.ai_host.value + ":" + sebl_conf.fields.ai_port.value + endpoint);
         xhr.setRequestHeader("Authorization", auth);
         xhr.setRequestHeader("Content-Type", "application/json");
-        xhr.send(data);
+        if (sebl_dryrun) {
+            sebl_curl += "\n" + "REM *****Bootstrap #1: Set CGW Host*****";
+            sebl_curl += "\n" + sebl_getcurlprefix(true) + endpoint + "\" --data-raw \"" + data.replace(/"/g, '\\"') + "\" -k" + "\n" + "timeout 10";
+            sebl_discovery.status = 1;
+            sebl_setprocstate(1);
+            sebl_setsecprof();
+        }
+        else {
+            xhr.send(data);
+        }
     }
     else {
         sebl_addmessage("Bootstrap step 1: CGW Host URI has already been set.");
@@ -2132,7 +2321,15 @@ sebl_getgw = function () {
     xhr.open("GET", "https://" + sebl_conf.fields.ai_host.value + ":" + sebl_conf.fields.ai_port.value + endpoint);
     xhr.setRequestHeader("Authorization", auth);
     xhr.setRequestHeader("Content-Type", "application/json");
-    xhr.send(data);
+    if (!sebl_dryrun) {
+        xhr.send(data);
+    }
+    else {
+        sebl_discovery.status = 0;
+        if (sebl_conf.bootstrap && !sebl_discovery_mode) {
+            sebl_setgw();
+        }
+    }
 }
 
 sebl_setsecprof = function () {
@@ -2191,7 +2388,16 @@ sebl_setsecprof = function () {
         xhr.open("POST", "https://" + sebl_conf.fields.ai_host.value + ":" + sebl_conf.fields.ai_port.value + endpoint);
         xhr.setRequestHeader("Authorization", auth);
         xhr.setRequestHeader("Content-Type", "application/json");
-        xhr.send(data);
+        if (sebl_dryrun) {
+            sebl_curl += "\n" + "REM *****Bootstrap #2: Create Security Profile*****";
+            sebl_curl += "\n" + sebl_getcurlprefix(true) + endpoint + "\" --data-raw \"" + data.replace(/"/g, '\\"') + "\" -k" + "\n" + "timeout 10";
+            sebl_discovery.status = 2;
+            sebl_setprocstate(1);
+            sebl_creategw();
+        }
+        else {
+            xhr.send(data);
+        }
     }
     else {
         sebl_addmessage("Bootstrap step 2: Security Profile not executed");
@@ -2304,7 +2510,9 @@ sebl_getcompstatus = function (comp) {
     xhr.open("GET", "https://" + sebl_conf.fields.ai_host.value + ":" + sebl_conf.fields.ai_port.value + endpoint + comp);
     xhr.setRequestHeader("Authorization", auth);
     xhr.setRequestHeader("Content-Type", "application/json");
-    xhr.send(data);
+    if (!sebl_dryrun) {
+        xhr.send(data);
+    }
 }
 
 sebl_getentprofile = function (ent) {
@@ -2337,8 +2545,9 @@ sebl_getentprofile = function (ent) {
     xhr.open("GET", "https://" + sebl_conf.fields.ai_host.value + ":" + sebl_conf.fields.ai_port.value + endpoint);
     xhr.setRequestHeader("Authorization", auth);
     xhr.setRequestHeader("Content-Type", "application/json");
-
-    xhr.send(data);
+    if (!sebl_dryrun) {
+        xhr.send(data);
+    }
 }
 
 sebl_getserverprofile = function (server) {
@@ -2372,8 +2581,9 @@ sebl_getserverprofile = function (server) {
     xhr.open("GET", "https://" + sebl_conf.fields.ai_host.value + ":" + sebl_conf.fields.ai_port.value + endpoint);
     xhr.setRequestHeader("Authorization", auth);
     xhr.setRequestHeader("Content-Type", "application/json");
-
-    xhr.send(data);
+    if (!sebl_dryrun) {
+        xhr.send(data);
+    }
 }
 sebl_getaiprofile = function (ai) {
     var data = "";
@@ -2405,8 +2615,9 @@ sebl_getaiprofile = function (ai) {
     xhr.open("GET", "https://" + sebl_conf.fields.ai_host.value + ":" + sebl_conf.fields.ai_port.value + endpoint);
     xhr.setRequestHeader("Authorization", auth);
     xhr.setRequestHeader("Content-Type", "application/json");
-
-    xhr.send(data);
+    if (!sebl_dryrun) {
+        xhr.send(data);
+    }
 }
 sebl_getmigprofile = function (mig) {
     var data = "";
@@ -2437,8 +2648,9 @@ sebl_getmigprofile = function (mig) {
     xhr.open("GET", "https://" + sebl_conf.fields.ai_host.value + ":" + sebl_conf.fields.ai_port.value + endpoint);
     xhr.setRequestHeader("Authorization", auth);
     xhr.setRequestHeader("Content-Type", "application/json");
-
-    xhr.send(data);
+    if (!sebl_dryrun) {
+        xhr.send(data);
+    }
 }
 sebl_getmigconn = function (con) {
     var data = "";
@@ -2469,8 +2681,9 @@ sebl_getmigconn = function (con) {
     xhr.open("GET", "https://" + sebl_conf.fields.ai_host.value + ":" + sebl_conf.fields.ai_port.value + endpoint);
     xhr.setRequestHeader("Authorization", auth);
     xhr.setRequestHeader("Content-Type", "application/json");
-
-    xhr.send(data);
+    if (!sebl_dryrun) {
+        xhr.send(data);
+    }
 }
 sebl_refresh = function () {
     //POST https://siebel20.company.com:4430/siebel/v1.0/cloudgateway/introspections
