@@ -20,3 +20,5 @@ Installation:
 4. Start AI tomcat
 
 5. Open siebel_autodeploy.html via tomcat (https://AI_HOST:AI_PORT/siebel/smc/auto_deploy/siebel_autodeploy.html)
+
+Update 21.2: Click dryrun to generate curl scripts
