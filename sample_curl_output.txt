@@ -1,0 +1,75 @@
+REM *****Bootstrap #1: Set CGW Host*****
+curl -u sadmin:sadmin -i -X POST -H "Content-Type:application/json" "https://siebelupg01.company.com:443/siebel/v1.0/cginfo" --data-raw "{\"CGHostURI\":\"siebelupg01.company.com:9011\",\"CGTlsPort\":\"2320\"}" -k
+timeout 10
+REM *****Bootstrap #2: Create Security Profile*****
+curl -u sadmin:sadmin -i -X POST -H "Content-Type:application/json" "https://siebelupg01.company.com:443/siebel/v1.0/cloudgateway/GatewaySecurityProfile" --data-raw "{\"Profile\":{\"ProfileName\":\"Gateway\"},\"SecurityConfigParams\":{\"DataSources\":[{\"Name\":\"db\",\"Type\":\"DB\",\"Host\":\"localhost\",\"Port\":\"1521\",\"SqlStyle\":\"Oracle\",\"Endpoint\":\"orcl\",\"TableOwner\":\"SIEBEL\",\"CRC\":\"\",\"HashUserPwd\":false,\"HashAlgorithm\":\"SHA1\"}],\"SecAdptMode\":\"DB\",\"SecAdptName\":\"DBSecAdpt\",\"DBSecurityAdapterDataSource\":\"db\",\"DBSecurityAdapterPropagateChange\":false,\"NSAdminRole\":[\"Siebel Administrator\"],\"TestUserName\":\"SADMIN\",\"TestUserPwd\":\"Siebel17\"}}" -k
+timeout 10
+REM *****Bootstrap #3: Create Gateway Registry*****
+curl -u SADMIN:Siebel17 -i -X POST -H "Content-Type:application/json" "https://siebelupg01.company.com:443/siebel/v1.0/cloudgateway/bootstrapCG" --data-raw "{\"registryPort\":\"2330\",\"registryUserName\":\"SADMIN\",\"registryPassword\":\"Siebel17\",\"PrimaryLanguage\":\"enu\"}" -k
+timeout 60
+REM *****Create Enterprise Profile*****
+curl -u SADMIN:Siebel17 -i -X POST -H "Content-Type:application/json" "https://siebelupg01.company.com:443/siebel/v1.0/cloudgateway/profiles/enterprises" --data-raw "{\"EnterpriseConfigParams\":{\"ServerFileSystem\":\"D:\\siebel\\fs\",\"UserName\":\"SADMIN\",\"Password\":\"Siebel17\",\"DatabasePlatform\":\"Oracle\",\"DBConnectString\":\"orcl\",\"DBUsername\":\"SADMIN\",\"DBUserPasswd\":\"Siebel17\",\"TableOwner\":\"SIEBEL\",\"SecAdptProfileName\":\"Gateway\",\"PrimaryLanguage\":\"enu\",\"Encrypt\":\"SISNAPI\"},\"Profile\":{\"ProfileName\":\"TEST_profile\"}}" -k
+timeout 10
+REM *****Deploy Enterprise*****
+curl -u SADMIN:Siebel17 -i -X POST -H "Content-Type:application/json" "https://siebelupg01.company.com:443/siebel/v1.0/cloudgateway/deployments/enterprises/" --data-raw "{\"DeploymentInfo\":{\"ProfileName\":\"TEST_profile\",\"Action\":\"Deploy\"},\"EnterpriseDeployParams\":{\"SiebelEnterprise\":\"TEST\",\"EnterpriseDesc\":\"Enterprise TEST\"}}" -k
+timeout 60
+REM *****Create Siebel Server Profile*****
+curl -u SADMIN:Siebel17 -i -X POST -H "Content-Type:application/json" "https://siebelupg01.company.com:443/siebel/v1.0/cloudgateway/profiles/servers" --data-raw "{\"ServerConfigParams\":{\"Username\":\"SADMIN\",\"Password\":\"Siebel17\",\"AnonLoginUserName\":\"GUESTCST\",\"AnonLoginPassword\":\"Siebel17\",\"EnableCompGroupsSIA\":\"callcenter,siebelwebtools,eai\",\"SCBPort\":\"2321\",\"LocalSynchMgrPort\":\"40400\",\"ModifyServerEncrypt\":\"false\",\"ModifyServerAuth\":\"false\",\"ClusteringEnvironmentSetup\":\"NotClustered\",\"UseOracleConnector\":\"true\"},\"Profile\":{\"ProfileName\":\"server01_profile\"}}" -k
+timeout 10
+REM *****Deploy Siebel Server*****
+curl -u SADMIN:Siebel17 -i -X POST -H "Content-Type:application/json" "https://siebelupg01.company.com:443/siebel/v1.0/cloudgateway/deployments/servers/" --data-raw "{\"DeploymentInfo\":{\"PhysicalHostIP\":\"siebelupg01.company.com:9011\",\"ProfileName\":\"server01_profile\",\"Action\":\"Deploy\"},\"ServerDeployParams\":{\"SiebelServer\":\"server01\",\"SiebelServerDesc\":\"Server server01\",\"DeployedLanguage\":\"enu\"}}" -k
+timeout 600
+REM *****Create AI Profile*****
+curl -u SADMIN:Siebel17 -i -X POST -H "Content-Type:application/json" "https://siebelupg01.company.com:443/siebel/v1.0/cloudgateway/profiles/swsm/" --data-raw "{\"ConfigParam\":{\"defaults\":{\"DoCompression\":false,\"EnableFQDN\":false,\"AuthenticationProperties\":{\"SessionTimeout\":9000,\"SessionTimeoutWarning\":60,\"GuestSessionTimeout\":300,\"SessionTimeoutWLMethod\":\"UpdatePrefMsg,GetAlarmInstances\",\"SessionTimeoutWLCommand\":\"HeartBeat\",\"SessionTokenMaxAge\":2880,\"SessionTokenTimeout\":9000,\"MaxTabs\":1,\"SingleSignOn\":false,\"AnonUserName\":\"GUESTCST\",\"AnonPassword\":\"Siebel17\"}},\"RESTInBound\":{\"RESTAuthenticationProperties\":{\"AnonUserName\":\"GUESTCST\",\"AnonPassword\":\"Siebel17\",\"AuthenticationType\":\"Basic\",\"SessKeepAlive\":900,\"ValidateCertificate\":true},\"LogProperties\":{\"LogLevel\":\"ERROR\"},\"ObjectManager\":\"eaiobjmgr_enu\",\"Baseuri\":\"https://siebelupg01.company.com:443/siebel/v1.0/\",\"MaxConnections\":20,\"RESTResourceParamList\":[]},\"UI\":{\"LogProperties\":{\"LogLevel\":\"ERROR\"}},\"EAI\":{\"LogProperties\":{\"LogLevel\":\"ERROR\"}},\"DAV\":{\"LogProperties\":{\"LogLevel\":\"ERROR\"}},\"RESTOutBound\":{\"LogProperties\":{\"LogLevel\":\"ERROR\"}},\"SOAPOutBound\":{\"LogProperties\":{\"LogLevel\":\"ERROR\"}},\"Applications\":[{\"Name\":\"callcenter\",\"ObjectManager\":\"sccobjmgr_enu\",\"Language\":\"enu\",\"StartCommand\":\"\",\"EnableExtServiceOnly\":false,\"AvailableInSiebelMobile\":false,\"AuthenticationProperties\":{\"SessionTimeout\":9000,\"SessionTimeoutWarning\":60,\"GuestSessionTimeout\":300,\"SessionTimeoutWLMethod\":\"\",\"SessionTimeoutWLCommand\":\"\",\"SessionTokenMaxAge\":2880,\"SessionTokenTimeout\":9000,\"MaxTabs\":1,\"SingleSignOn\":false,\"AnonUserName\":\"\",\"AnonPassword\":\"\"}},{\"Name\":\"webtools\",\"ObjectManager\":\"swtoolsobjmgr_enu\",\"Language\":\"enu\",\"StartCommand\":\"\",\"EnableExtServiceOnly\":false,\"AvailableInSiebelMobile\":false,\"AuthenticationProperties\":{\"SessionTimeout\":9000,\"SessionTimeoutWarning\":60,\"GuestSessionTimeout\":300,\"SessionTimeoutWLMethod\":\"\",\"SessionTimeoutWLCommand\":\"\",\"SessionTokenMaxAge\":2880,\"SessionTokenTimeout\":9000,\"MaxTabs\":1,\"SingleSignOn\":false,\"AnonUserName\":\"\",\"AnonPassword\":\"\"}},{\"Name\":\"eai\",\"ObjectManager\":\"eaiobjmgr_enu\",\"Language\":\"enu\",\"StartCommand\":\"\",\"EnableExtServiceOnly\":true,\"AvailableInSiebelMobile\":false,\"AuthenticationProperties\":{\"SessionTimeout\":9000,\"SessionTimeoutWarning\":60,\"GuestSessionTimeout\":300,\"SessionTimeoutWLMethod\":\"\",\"SessionTimeoutWLCommand\":\"\",\"SessionTokenMaxAge\":2880,\"SessionTokenTimeout\":9000,\"MaxTabs\":1,\"SingleSignOn\":false,\"AnonUserName\":\"\",\"AnonPassword\":\"\"},\"UseAnonPool\":false,\"EAISOAPMaxRetry\":0,\"EAISOAPNoSessInPref\":false},{\"Name\":\"dav\",\"ObjectManager\":\"eaiobjmgr_enu\",\"Language\":\"enu\",\"StartCommand\":\"\",\"EnableExtServiceOnly\":true,\"AvailableInSiebelMobile\":false,\"AuthenticationProperties\":{\"SessionTimeout\":9000,\"SessionTimeoutWarning\":60,\"GuestSessionTimeout\":300,\"SessionTimeoutWLMethod\":\"\",\"SessionTimeoutWLCommand\":\"\",\"SessionTokenMaxAge\":2880,\"SessionTokenTimeout\":9000,\"MaxTabs\":1,\"SingleSignOn\":false,\"AnonUserName\":\"\",\"AnonPassword\":\"\"},\"UseAnonPool\":false,\"EAISOAPMaxRetry\":0,\"EAISOAPNoSessInPref\":false}],\"RESTInBoundResource\":[],\"swe\":{\"Language\":\"ENU\",\"MaxQueryStringLength\":-1,\"SeedFile\":\"\",\"SessionMonitor\":false,\"AllowStats\":true}},\"Profile\":{\"ProfileName\":\"AI_ONE_profile\"}}" -k
+timeout 10
+REM *****Deploy AI*****
+curl -u SADMIN:Siebel17 -i -X POST -H "Content-Type:application/json" "https://siebelupg01.company.com:443/siebel/v1.0/cloudgateway/deployments/swsm/" --data-raw "{\"DeploymentInfo\":{\"PhysicalHostIP\":\"siebelupg01.company.com:443\",\"ProfileName\":\"AI_ONE_profile\",\"Action\":\"Deploy\"},\"DeploymentParam\":{\"Node\":\"AI_ONE\",\"NodeDesc\":\"AI_ONE\"}}" -k
+timeout 60
+REM *****Set Migration Profile*****
+curl -u SADMIN:Siebel17 -i -X POST -H "Content-Type:application/json" "https://siebelupg01.company.com:443/siebel/v1.0/cloudgateway/profiles/migrations/" --data-raw "{\"MigrationConfigParams\":{\"SiebelRESTEndpoint\":\"https://siebelupg01.company.com:443/siebel/v1.0\",\"AuthenticationType\":\"Basic\",\"LogLevel\":\"Error\",\"Timeout\":3000,\"SleepTime\":15,\"SiebelApplicationName\":\"callcenter\",\"Language\":\"enu\",\"PackageLocation\":\"\"},\"Profile\":{\"ProfileName\":\"MIG_profile\"}}" -k
+timeout 10
+REM *****Deploy Migration App*****
+curl -u SADMIN:Siebel17 -i -X POST -H "Content-Type:application/json" "https://siebelupg01.company.com:443/siebel/v1.0/cloudgateway/deployments/migrations/" --data-raw "{\"DeploymentInfo\":{\"PhysicalHostIP\":\"siebelupg01.company.com:443\",\"ProfileName\":\"MIG_profile\",\"Action\":\"Deploy\"},\"MigrationDeployParams\":{\"SiebelMigration\":\"MIG\",\"MigrationDesc\":\"MIG\"}}" -k
+timeout 60
+REM *****Set Migration Connection*****
+curl -u SADMIN:Siebel17 -i -X POST -H "Content-Type:application/json" "https://siebelupg01.company.com:443/siebel/v1.0/migration/connection" --data-raw "{\"name\":\"TEST\",\"restEndpoint\":\"https://siebelupg01.company.com:443/siebel/v1.0\",\"isFavourite\":\"false\",\"schemaUser\":\"SIEBEL\",\"tableSpaceData\":\"SIEBELDB_DATA\",\"tableSpaceIndex\":\"SIEBELDB_IDX\",\"tableSpacePage16K\":\"\",\"tableSpacePage32K\":\"\",\"isUnicodeDatabase\":true}" -k
+timeout 10
+REM *****Set BusIntBatchMgr to manual start*****
+curl -u SADMIN:Siebel17 -i -X POST -H "Content-Type:application/json" "https://siebelupg01.company.com:443/siebel/v1.0/cloudgateway/enterprises/TEST/servers/server01/components/BusIntBatchMgr" --data-raw "{\"Action\":\"manual start\"}" -k
+timeout 2
+REM *****Set CustomAppObjMgr_enu to manual start*****
+curl -u SADMIN:Siebel17 -i -X POST -H "Content-Type:application/json" "https://siebelupg01.company.com:443/siebel/v1.0/cloudgateway/enterprises/TEST/servers/server01/components/CustomAppObjMgr_enu" --data-raw "{\"Action\":\"manual start\"}" -k
+timeout 2
+REM *****Set SServiceObjMgr_enu to manual start*****
+curl -u SADMIN:Siebel17 -i -X POST -H "Content-Type:application/json" "https://siebelupg01.company.com:443/siebel/v1.0/cloudgateway/enterprises/TEST/servers/server01/components/SServiceObjMgr_enu" --data-raw "{\"Action\":\"manual start\"}" -k
+timeout 2
+REM *****Set eServiceObjMgr_enu to manual start*****
+curl -u SADMIN:Siebel17 -i -X POST -H "Content-Type:application/json" "https://siebelupg01.company.com:443/siebel/v1.0/cloudgateway/enterprises/TEST/servers/server01/components/eServiceObjMgr_enu" --data-raw "{\"Action\":\"manual start\"}" -k
+timeout 2
+REM *****Set InfraEAIOutbound to manual start*****
+curl -u SADMIN:Siebel17 -i -X POST -H "Content-Type:application/json" "https://siebelupg01.company.com:443/siebel/v1.0/cloudgateway/enterprises/TEST/servers/server01/components/InfraEAIOutbound" --data-raw "{\"Action\":\"manual start\"}" -k
+timeout 2
+REM *****Set SMQReceiver to manual start*****
+curl -u SADMIN:Siebel17 -i -X POST -H "Content-Type:application/json" "https://siebelupg01.company.com:443/siebel/v1.0/cloudgateway/enterprises/TEST/servers/server01/components/SMQReceiver" --data-raw "{\"Action\":\"manual start\"}" -k
+timeout 2
+REM *****Set MSMQRcvr to manual start*****
+curl -u SADMIN:Siebel17 -i -X POST -H "Content-Type:application/json" "https://siebelupg01.company.com:443/siebel/v1.0/cloudgateway/enterprises/TEST/servers/server01/components/MSMQRcvr" --data-raw "{\"Action\":\"manual start\"}" -k
+timeout 2
+REM *****Set MqSeriesSrvRcvr to manual start*****
+curl -u SADMIN:Siebel17 -i -X POST -H "Content-Type:application/json" "https://siebelupg01.company.com:443/siebel/v1.0/cloudgateway/enterprises/TEST/servers/server01/components/MqSeriesSrvRcvr" --data-raw "{\"Action\":\"manual start\"}" -k
+timeout 2
+REM *****Set MqSeriesAMIRcvr to manual start*****
+curl -u SADMIN:Siebel17 -i -X POST -H "Content-Type:application/json" "https://siebelupg01.company.com:443/siebel/v1.0/cloudgateway/enterprises/TEST/servers/server01/components/MqSeriesAMIRcvr" --data-raw "{\"Action\":\"manual start\"}" -k
+timeout 2
+REM *****Set JMSReceiver to manual start*****
+curl -u SADMIN:Siebel17 -i -X POST -H "Content-Type:application/json" "https://siebelupg01.company.com:443/siebel/v1.0/cloudgateway/enterprises/TEST/servers/server01/components/JMSReceiver" --data-raw "{\"Action\":\"manual start\"}" -k
+timeout 2
+REM *****Set EIM to manual start*****
+curl -u SADMIN:Siebel17 -i -X POST -H "Content-Type:application/json" "https://siebelupg01.company.com:443/siebel/v1.0/cloudgateway/enterprises/TEST/servers/server01/components/EIM" --data-raw "{\"Action\":\"manual start\"}" -k
+timeout 2
+REM *****Set BusIntMgr to manual start*****
+curl -u SADMIN:Siebel17 -i -X POST -H "Content-Type:application/json" "https://siebelupg01.company.com:443/siebel/v1.0/cloudgateway/enterprises/TEST/servers/server01/components/BusIntMgr" --data-raw "{\"Action\":\"manual start\"}" -k
+timeout 2
+REM *****Set Safe Mode Credentials*****
+curl -u SADMIN:Siebel17 -i -X POST -H "Content-Type:application/json" "https://siebelupg01.company.com:443/siebel/v1.0/cloudgateway/safemode" --data-raw "{\"username\":\"SADMIN\",\"password\":\"Siebel17\"}" -k
+timeout 10
